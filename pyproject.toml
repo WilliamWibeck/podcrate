@@ -1,0 +1,30 @@
+[project]
+name = "podcrate"
+version = "0.1.0"
+description = "Fill a Rockbox iPod with AI-curated, Spotify and YouTube playlists"
+readme = "README.md"
+license = "MIT"
+license-files = ["LICENSE"]
+requires-python = ">=3.12"
+dependencies = [
+    "google-genai>=2.14.0",
+    "mutagen>=1.48.1",
+    "pydantic>=2.13.4",
+    "python-dotenv>=1.2.2",
+    "rich>=15.0.0",
+    "typer>=0.27.0",
+    "yt-dlp>=2026.8.19",
+    "secretstorage>=3.3.3; sys_platform == 'linux'",
+    "spotipy>=2.26.0",
+    "questionary>=2.1.1",
+]
+
+[project.scripts]
+podcrate = "podcrate.cli:app"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/podcrate"]

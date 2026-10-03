@@ -1,0 +1,10 @@
+[Unit]
+Description=Watch for a mounted Rockbox iPod
+
+[Path]
+PathChanged=/run/media/%u
+PathChanged=/media
+Unit=podcrate-autosync.service
+
+[Install]
+WantedBy=default.target

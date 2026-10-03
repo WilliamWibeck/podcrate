@@ -1,0 +1,8 @@
+[Unit]
+Description=Auto-sync podcrate library when a Rockbox iPod is detected
+
+[Service]
+Type=oneshot
+# Give the desktop a moment to finish mounting the device.
+ExecStartPre=/bin/sleep 2
+ExecStart=%h/.local/bin/podcrate autosync
