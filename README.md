@@ -26,7 +26,7 @@ $ podcrate
 ## Install
 
 ```bash
-git clone https://github.com/<you>/podcrate.git
+git clone https://github.com/WilliamWibeck/podcrate.git
 cd podcrate
 uv sync
 uv tool install --editable .   # puts `podcrate` on your PATH
