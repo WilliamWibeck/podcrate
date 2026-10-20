@@ -82,6 +82,7 @@ podcrate fetch --spotify                                  # pick from your Spoti
 podcrate fetch "https://open.spotify.com/playlist/..."
 podcrate fetch "https://www.youtube.com/playlist?list=..."
 podcrate fetch exports/                                   # .json/.csv file or folder of CSVs
+podcrate artist "NF"                                      # pick albums/EPs to download, no playlist
 
 # Device
 podcrate sync                     # copy every tracked playlist to the iPod
@@ -99,7 +100,7 @@ deselect songs. Use ↑/↓, space and Enter. Pass `--no-review` to skip it.
 
 - **Library:** downloads go to `~/Music/podcrate/<Artist>/<Album>/` as 192 kbps MP3s with tags and cover art. A song that is already in the library is never downloaded again, even when another playlist includes it.
 - **Playlists:** each playlist is saved as `~/Music/podcrate/.playlists/<name>.json`. `sync` reads these files.
-- **Sync:** podcrate copies files into `Music/` on the iPod and writes `Playlists/<name>.m3u`. It never deletes audio from the device. A full sync removes `.m3u` files for playlists you have deleted (pass `--no-prune` to keep them). If an iPod is plugged in when a download finishes, podcrate syncs that playlist straight away.
+- **Sync:** podcrate copies files into `Music/` on the iPod and writes `Playlists/<name>.m3u`. A full sync also copies library tracks that aren't in any playlist, so Rockbox's database can browse them. It never deletes audio from the device. A full sync removes `.m3u` files for playlists you have deleted (pass `--no-prune` to keep them). If an iPod is plugged in when a download finishes, podcrate syncs that playlist straight away.
 
 ## Auto-sync on plug-in (optional)
 

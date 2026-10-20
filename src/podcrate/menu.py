@@ -67,7 +67,13 @@ def _new_playlist(app: typer.Typer) -> None:
 def _import(app: typer.Typer) -> None:
     source = questionary.select(
         "Import from:",
-        choices=["My Spotify playlists", "Spotify / YouTube URL", "File or folder (.json/.csv)", "← Back"],
+        choices=[
+            "My Spotify playlists",
+            "Spotify / YouTube URL",
+            "File or folder (.json/.csv)",
+            "Artist's albums (no playlist)",
+            "← Back",
+        ],
     ).unsafe_ask()
     if source == "My Spotify playlists":
         _run(app, "fetch", "--spotify")
@@ -75,6 +81,10 @@ def _import(app: typer.Typer) -> None:
         url = questionary.text("URL:").unsafe_ask().strip()
         if url:
             _run(app, "fetch", url)
+    elif source.startswith("Artist"):
+        name = questionary.text("Artist:").unsafe_ask().strip()
+        if name:
+            _run(app, "artist", name)
     elif source.startswith("File"):
         path = questionary.path("Path:").unsafe_ask().strip()
         if path:
@@ -142,7 +152,7 @@ def _combine(app: typer.Typer) -> None:
 def run_menu(app: typer.Typer) -> None:
     actions = {
         "New AI playlist": _new_playlist,
-        "Import (Spotify / YouTube / file)": _import,
+        "Import (Spotify / YouTube / file / artist)": _import,
         "Browse & manage playlists": _manage,
         "Combine playlists": _combine,
         "Sync everything to iPod": lambda a: _run(a, "sync"),

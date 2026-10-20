@@ -7,9 +7,11 @@ from typing import Optional
 
 import questionary
 import typer
+from mutagen.mp3 import EasyMP3
 from rich.console import Console
 
 from . import fetch as fetch_mod
+from . import musicbrainz
 from . import stats as stats_mod
 from . import transfer as transfer_mod
 from .config import Config
@@ -392,11 +394,6 @@ def sync(
         do_prune = prune
     else:
         playlists = list_playlist_records(cfg.library_dir)
-        if not playlists:
-            console.print(
-                "[yellow]No playlists tracked yet — run `playlist` or `fetch` first.[/yellow]"
-            )
-            raise typer.Exit(0)
         do_prune = prune
 
     with console.status(f"Syncing {len(playlists)} playlist(s) to {root}..."):
@@ -409,9 +406,17 @@ def sync(
             if do_prune
             else []
         )
+        # Tracks outside any playlist (e.g. `podcrate artist`) still belong on the device.
+        extra, _ = (
+            ([], []) if playlist_name else transfer_mod.sync_library(cfg, root, dry_run=dry_run)
+        )
 
     for result in results:
         _print_sync_result(result, root)
+    if extra:
+        console.print(f"[bold]Library[/bold]: [green]{len(extra)} more tracks copied[/green]")
+        for rel in extra:
+            console.print(f"  + {rel}")
 
     if removed:
         verb = "Would remove" if dry_run else "Removed"
@@ -446,7 +451,8 @@ def autosync():
     _STATE_FILE.write_text(str(root))
 
     results, _removed = transfer_mod.sync_all_playlists(cfg, root)
-    total_copied = sum(len(r.tracks_copied) for r in results)
+    extra, _ = transfer_mod.sync_library(cfg, root)
+    total_copied = sum(len(r.tracks_copied) for r in results) + len(extra)
     if total_copied:
         transfer_mod.notify(
             "iPod synced", f"{total_copied} new track(s) copied to {root.name}"
@@ -624,6 +630,67 @@ def fill(
         )
 
     console.print(f"\n{ok} added, {failed} failed.")
+
+
+@app.command()
+def artist(
+    name: str = typer.Argument(..., help="Artist name, e.g. 'NF'"),
+    all_albums: bool = typer.Option(False, "--all", help="Download every album without asking"),
+    force: bool = typer.Option(False, "--force", help="Re-download even if already in library"),
+):
+    """Download an artist's albums and EPs into the library (no playlist).
+
+    Rockbox's database lists them under Artist/Album once synced.
+    """
+    cfg = Config.load()
+    index = LibraryIndex(cfg.library_dir)
+    with console.status(f"Looking up {name} on MusicBrainz..."):
+        try:
+            found = musicbrainz.find_artist(name)
+            albums = musicbrainz.list_albums(found)
+        except musicbrainz.MusicBrainzError as exc:
+            console.print(f"[red]{exc}[/red]")
+            raise typer.Exit(1)
+    note = f" ({found['disambiguation']})" if found.get("disambiguation") else ""
+    if not albums:
+        console.print(f"[yellow]No official albums or EPs for {found['name']}{note}.[/yellow]")
+        raise typer.Exit(0)
+    console.print(f"[bold]{found['name']}[/bold]{note}: {len(albums)} albums/EPs")
+
+    if not all_albums and sys.stdin.isatty():
+        picks = set(pick("Download which?", [a.label() for a in albums], checked=True))
+        albums = [a for i, a in enumerate(albums) if i in picks]
+
+    ok, failed, fetched = 0, 0, []
+    for album in albums:
+        console.print(f"\n[bold]{album.title}[/bold] ({album.year})")
+        for number, song in enumerate(album.songs, 1):
+            already = None if force else index.get(song.artist, song.title)
+            with console.status(f"Fetching {song.display()}..."):
+                try:
+                    path = fetch_mod.fetch_song(song, cfg, index, force=force)
+                except fetch_mod.FetchError as exc:
+                    console.print(f"[red]FAILED[/red] {song.display()}: {exc}")
+                    failed += 1
+                    continue
+            if already is None:
+                # Track numbers keep Rockbox's album view in order instead of A-Z.
+                audio = EasyMP3(path)
+                audio["tracknumber"] = str(number)
+                audio.save()
+            console.print(f"[green]ok[/green] {song.display()} -> {path}")
+            fetched.append(path)
+            ok += 1
+
+    mounts = transfer_mod.find_ipod_mounts()
+    if fetched and mounts:
+        try:
+            with console.status(f"Copying to {mounts[0]}..."):
+                copied = [transfer_mod.sync_track(cfg, mounts[0], p)[1] for p in fetched]
+            console.print(f"[green]{sum(copied)} tracks copied to {mounts[0]}[/green]")
+        except transfer_mod.IpodReadOnlyError as exc:
+            console.print(f"[yellow]Not syncing: {exc}[/yellow]")
+    console.print(f"\n{ok} tracks ready, {failed} failed. Library: {cfg.library_dir}")
 
 
 @app.command()

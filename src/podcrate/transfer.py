@@ -128,7 +128,6 @@ def sync_track(
     cfg: Config,
     ipod_root: Path,
     src: Path,
-    song: Song,
     *,
     dry_run: bool = False,
 ) -> tuple[Path, bool]:
@@ -172,7 +171,7 @@ def sync_playlist(
             result.missing.append(song)
             continue
 
-        rel, copied = sync_track(cfg, ipod_root, src, song, dry_run=dry_run)
+        rel, copied = sync_track(cfg, ipod_root, src, dry_run=dry_run)
         track_path = ipod_root / rel
         if copied:
             result.tracks_copied.append(rel)
@@ -185,6 +184,28 @@ def sync_playlist(
         _write_m3u(playlist_file, m3u_entries, dry_run=dry_run)
 
     return result
+
+
+def sync_library(
+    cfg: Config, ipod_root: Path, *, dry_run: bool = False
+) -> tuple[list[Path], list[Path]]:
+    """Copy every library track, playlist or not, so Rockbox's database can browse it.
+
+    Returns (copied, skipped) paths relative to the iPod root.
+    """
+    if not dry_run:
+        assert_ipod_writable(ipod_root)
+    copied: list[Path] = []
+    skipped: list[Path] = []
+    for src in sorted(cfg.library_dir.rglob("*.mp3")):
+        # is_file: artist folders can end in ".mp3" too (e.g. "daniel.mp3/")
+        if not src.is_file() or any(
+            part.startswith(".") for part in src.relative_to(cfg.library_dir).parts
+        ):
+            continue
+        rel, did_copy = sync_track(cfg, ipod_root, src, dry_run=dry_run)
+        (copied if did_copy else skipped).append(rel)
+    return copied, skipped
 
 
 def list_device_playlist_files(cfg: Config, ipod_root: Path) -> list[Path]:
