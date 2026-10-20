@@ -147,6 +147,7 @@ def run_menu(app: typer.Typer) -> None:
         "Combine playlists": _combine,
         "Sync everything to iPod": lambda a: _run(a, "sync"),
         "Library stats": lambda a: _run(a, "library"),
+        "Listening stats (iPod)": lambda a: _run(a, "stats"),
     }
     while True:
         try:

@@ -10,6 +10,7 @@ import typer
 from rich.console import Console
 
 from . import fetch as fetch_mod
+from . import stats as stats_mod
 from . import transfer as transfer_mod
 from .config import Config
 from .interactive import pick, render_songs, review_songs, _parse_selection
@@ -642,6 +643,31 @@ def library():
         console.print(f"\n[yellow]{len(duplicates)} duplicate playlist issue(s):[/yellow]")
         _warn_playlist_duplicates(duplicates)
 
+
+@app.command()
+def stats(
+    ipod: Optional[str] = typer.Option(None, "--ipod", help="Mount path (auto-detected if omitted)"),
+    top: int = typer.Option(10, "--top", help="How many tracks/artists to list"),
+):
+    """Show listening stats from the iPod's Rockbox playback log."""
+    root = _resolve_ipod(ipod)
+    plays = stats_mod.read_plays(root)
+    if plays is None:
+        console.print(
+            f"[red]No {stats_mod.LOG_RELPATH} on {root}.[/red]\n"
+            "Enable it on the iPod: Settings > Playback Settings > Logging > Yes."
+        )
+        raise typer.Exit(1)
+
+    s = stats_mod.summarize(plays, top=top)
+    hours, rem = divmod(s.listened_ms // 60000, 60)
+    console.print(f"[bold]{s.plays} plays[/bold], {s.skips} skips, {hours}h {rem}m listened")
+    console.print("\n[bold]Top tracks[/bold]")
+    for name, count in s.top_tracks:
+        console.print(f"  {count:>4}  {name}")
+    console.print("\n[bold]Top artists[/bold]")
+    for name, count in s.top_artists:
+        console.print(f"  {count:>4}  {name}")
 
 def _maybe_sync_playlist(
     cfg: Config,
