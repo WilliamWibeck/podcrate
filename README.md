@@ -18,10 +18,10 @@ $ podcrate
 
 ## Requirements
 
-- Linux, Python 3.12+ and [uv](https://docs.astral.sh/uv/)
+- Linux or macOS, Python 3.12+ and [uv](https://docs.astral.sh/uv/)
 - `ffmpeg` on your `PATH`
 - A JavaScript runtime (`deno` or `node`), which yt-dlp needs for YouTube
-- An iPod running [Rockbox](https://www.rockbox.org/), mounted under `/run/media` or `/media`
+- An iPod running [Rockbox](https://www.rockbox.org/), mounted under `/run/media`, `/media` or `/Volumes`
 
 ## Install
 

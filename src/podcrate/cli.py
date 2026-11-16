@@ -93,7 +93,7 @@ def _resolve_ipod(ipod: Optional[str]) -> Path:
     mounts = transfer_mod.find_ipod_mounts()
     if not mounts:
         console.print(
-            "[red]No Rockbox/iPod device found under /run/media or /media.[/red]\n"
+            "[red]No Rockbox/iPod device found under /run/media, /media or /Volumes.[/red]\n"
             "Plug it in and make sure it's mounted, or pass --ipod /path/to/mount."
         )
         raise typer.Exit(1)

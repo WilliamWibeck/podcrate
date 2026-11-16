@@ -4,6 +4,7 @@ import errno
 import os
 import shutil
 import subprocess
+import sys
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -19,6 +20,7 @@ _CANDIDATE_ROOTS = [
     Path("/run/media"),
     Path("/media"),
     Path(f"/media/{Path.home().name}"),
+    Path("/Volumes"),  # macOS
 ]
 
 _IPOD_MARKERS = (".rockbox", "iPod_Control")
@@ -253,7 +255,16 @@ def notify(title: str, body: str) -> None:
 
 
 def eject(ipod_root: Path) -> str:
-    """Unmount and power off the device via udisksctl. Returns a status message."""
+    """Unmount and power off the device (udisksctl, or diskutil on macOS). Returns a status message."""
+    if sys.platform == "darwin":
+        try:
+            subprocess.run(
+                ["diskutil", "eject", str(ipod_root)], check=True, capture_output=True, text=True
+            )
+        except subprocess.CalledProcessError as exc:
+            return f"eject failed: {exc.stderr.strip() if exc.stderr else exc}"
+        return f"{ipod_root} safely ejected"
+
     try:
         device = subprocess.run(
             ["findmnt", "-n", "-o", "SOURCE", "--target", str(ipod_root)],
